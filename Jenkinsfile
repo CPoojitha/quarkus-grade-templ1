@@ -94,9 +94,7 @@ INGRESS= "isdc20-0ce42e8480356580312b8efcc5f21aad-0001.us-south.containers.appdo
   stages {
     
       stage('Build'){
-        tools {
-           quarkus 'quarkus_happy'
-           }
+       
             steps{
              script{
                   sh 'sudo mvn -Dmaven.test.failure.ignore=true clean package'
