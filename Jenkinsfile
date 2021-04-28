@@ -5,7 +5,7 @@ pipeline {
         stage('Build') {
             steps {
                
-               sh 'java -jar target/getting-started-1.0-SNAPSHOT-runner.jar'
+               sh './mvnw -Dmaven.test.failure.ignore=true clean package'
                }
                }
                
