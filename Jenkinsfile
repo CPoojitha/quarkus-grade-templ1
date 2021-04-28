@@ -97,7 +97,7 @@ INGRESS= "isdc20-0ce42e8480356580312b8efcc5f21aad-0001.us-south.containers.appdo
        
             steps{
              script{
-                  sh ' ./mvn -Dmaven.test.failure.ignore=true clean package'
+                  sh ' mvnw -Dmaven.test.failure.ignore=true clean package'
                 }
             }
         }
