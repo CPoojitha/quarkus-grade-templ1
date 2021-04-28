@@ -97,78 +97,15 @@ INGRESS= "isdc20-0ce42e8480356580312b8efcc5f21aad-0001.us-south.containers.appdo
        
             steps{
              script{
-                  sh 'sudo mvn -Dmaven.test.failure.ignore=true clean package'
+                  sh ' ./mvn -Dmaven.test.failure.ignore=true clean package'
                 }
             }
         }
 
-        stage ('Build: Docker') {
-            steps {
-                container('kaniko') {
-                    /* Kaniko uses secret 'regsecret' declared in the POD to authenticate to the registry and push the image */
-                    sh 'pwd && ls -l && df -h && cat /kaniko/.docker/config.json && /kaniko/executor -f `pwd`/Dockerfile --context `pwd` --insecure --skip-tls-verify --cache=true --destination=${REGISTRY_NAME}/${DOCKER_IMAGE}:${DOCKER_TAG}'
-                }
-            }
-        }
-        stage ('Secure: Image scan - Clair') {
-            steps {
-                container('yair') {
-                    withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIAL_ID}", usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
-                        script {
-                            catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') { /* Avoid the stage being FAILURE if Clair founds vulnerabilities above acceptable threshold. That will be calculated later in the gate */
-                              //  sh 'yair.py --clair ${CLAIR_URL} --registry ${REGISTRY_NAME} --username ${REGISTRY_USERNAME} --password ${REGISTRY_PASSWORD} --no-namespace ${DOCKER_IMAGE}:${DOCKER_TAG}'
-				 sh 'wget https://github.com/optiopay/klar/releases/download/v2.4.0/klar-2.4.0-linux-amd64'
-				 sh 'mv klar-2.4.0-linux-amd64 klar'
-				 sh 'chmod 755 klar'
-		                 sh 'export CLAIR_ADDR=${CLAIR_URL} && export DOCKER_PASSWORD=${REGISTRY_PASSWORD} && export DOCKER_USER=${REGISTRY_USERNAME} && ./klar ${DOCKER_URL}/${DOCKER_IMAGE}:${DOCKER_TAG}  '
-                            }
-                        }
-                    }
-                }
-            }
-            post {
-                always {
-                    sh 'rm -rf $WORKSPACE/reports/clair && mkdir -p $WORKSPACE/reports/clair'
-           //         sh 'cp clair-results.json $WORKSPACE/reports/clair'
-                }
-            }
-        }		
+       
+        
 	
-	 stage('Deploy: To Openshift') {
-        steps {
-          container('openshift-cli') {
-	     withCredentials([
-	        usernamePassword(credentialsId: "${OPENSHIFT_CREDENTIAL_ID}", usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'TOKEN'),
-		      usernamePassword(credentialsId: "${DOCKER_CREDENTIAL_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')
-	     ]) {
-              sh '''
-              oc login --server="${OPENSHIFT_URL}" --token="${TOKEN}"
-              oc project ${NAMESPACE}
-              pwd
-              ls -ltr
-              oc create secret docker-registry docker-repo-cred \
-              --docker-server=${DOCKER_URL} \
-              --docker-username=${DOCKER_USERNAME} \
-              --docker-password=${DOCKER_PASSWORD} \
-              --docker-email=${DOCKER_PASSWORD} \
-              --namespace=${NAMESPACE} \
-              || true
-              sed -e "s~{REGISTRY_NAME}~$DOCKER_URL~g" \
-                  -e "s~{DOCKER_IMAGE}~$DOCKER_IMAGE~g" \
-                  -e "s~{DOCKER_TAG}~$DOCKER_TAG~g" \
-                  -e "s~{K8S_DEPLOYMENT}~$K8S_DEPLOYMENT~g" \
-                  -e "s~{INGRESS_URL}~$INGRESS~g" -i devops/k8s/*.yml
-              oc apply -f devops/k8s/ --namespace="${NAMESPACE}" \
-              || true
-              oc create route edge --service=${componentName}-svc ||true
-              oc wait --for=condition=available --timeout=120s deployment/${componentName} --namespace="${NAMESPACE}" \
-              || true
-              '''
-	     }
-           }
-         }
-        }
-
+	
         
 
 
