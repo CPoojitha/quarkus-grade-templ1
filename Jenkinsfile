@@ -1,5 +1,5 @@
 pipeline {
-
+  //commnet added by Animesh
 agent {
         kubernetes {
       yaml """
@@ -24,7 +24,7 @@ spec:
     tty: true
     imagePullPolicy: Always
   - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug-1534f90c9330d40486136b2997e7972a79a69baf
+    image: gcr.io/kaniko-project/executor:debug-1534f90c9330d40486136b2997e79q72a79a69baf
     imagePullPolicy: Always
     command:
     - cat
@@ -70,8 +70,8 @@ SONARQUBE_URL= "https://sonarqube-3-6.container-crush-02-4044f3a4e314f4bcb433696
 SONARQUBE_CREDENTIAL_ID= "dc-sonarqube-6110"
 CLAIR_URL= "https://clair-3-3.container-crush-02-4044f3a4e314f4bcb433696c70d13be9-0000.eu-de.containers.appdomain.cloud/"
 CLAIR_CREDENTIAL_ID= "dc-clair-6110"
-NAMESPACE= "tools-dev"
-INGRESS= "isdc20-0ce42e8480356580312b8efcc5f21aad-0001.us-south.containers.appdomain.cloud"
+NAMESPACE= "estore"
+INGRESS= "verizon-poc-1615357584710-f72ef11f3ab089a8c677044eb28292cd-0000.sjc03.containers.appdomain.cloud"
 	
 	/* -----------DevOps Commander  created env variables------------ */
 
@@ -86,23 +86,19 @@ INGRESS= "isdc20-0ce42e8480356580312b8efcc5f21aad-0001.us-south.containers.appdo
         REGISTRY_SECRET="odu-registry"
         DOCKER_IMAGE="lnk"
         DOCKER_TAG="$BUILD_NUMBER"
-	K8S_DEPLOYMENT="quarkus-test"
+	K8S_DEPLOYMENT="nodejs-test"
        
   }
  
   stages {
     
-     /* stage('Build'){
-        tools {
-           nodejs 'nodejs_happy'
-           }
+      stage('Build'){
+        
             steps{
              script{
-                  sh 'sudo npm install'
+                  sh ' mvnw -Dmaven.test.failure.ignore=true clean package'
                 }
             }
-        }*/
-
         stage ('Build: Docker') {
             steps {
                 container('kaniko') {
@@ -110,7 +106,6 @@ INGRESS= "isdc20-0ce42e8480356580312b8efcc5f21aad-0001.us-south.containers.appdo
                     sh 'pwd && ls -l && df -h && cat /kaniko/.docker/config.json && /kaniko/executor -f `pwd`/Dockerfile --context `pwd` --insecure --skip-tls-verify --cache=true --destination=${REGISTRY_NAME}/${DOCKER_IMAGE}:${DOCKER_TAG}'
                 }
             }
-        }
         stage ('Secure: Image scan - Clair') {
             steps {
                 container('yair') {
@@ -157,7 +152,7 @@ INGRESS= "isdc20-0ce42e8480356580312b8efcc5f21aad-0001.us-south.containers.appdo
               sed -e "s~{REGISTRY_NAME}~$DOCKER_URL~g" \
                   -e "s~{DOCKER_IMAGE}~$DOCKER_IMAGE~g" \
                   -e "s~{DOCKER_TAG}~$DOCKER_TAG~g" \
-                  -e "s~{K8S_DEPLOYMENT}~$K8S_DEPLOYMENT~g" \
+                  -e "s~{K8S_DEPLOYMENT}~$componentName~g" \
                   -e "s~{INGRESS_URL}~$INGRESS~g" -i devops/k8s/*.yml
               oc apply -f devops/k8s/ --namespace="${NAMESPACE}" \
               || true
